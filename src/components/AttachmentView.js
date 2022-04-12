@@ -12,6 +12,7 @@ import compose from '../libs/compose';
 import Text from './Text';
 import Tooltip from './Tooltip';
 import themeColors from '../styles/themes/default';
+import VideoView from './VideoView';
 
 const propTypes = {
     /** URL to full-sized attachment */
@@ -57,6 +58,12 @@ const AttachmentView = (props) => {
     if (Str.isImage(props.sourceURL) || (props.file && Str.isImage(props.file.name))) {
         return (
             <ImageView url={props.sourceURL} />
+        );
+    }
+
+    if (Str.isVideo(props.sourceURL) || (props.file && Str.isVideo(props.file.name))) {
+        return (
+            <VideoView url={props.sourceURL} file={props.file}/>
         );
     }
 

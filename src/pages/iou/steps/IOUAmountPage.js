@@ -3,6 +3,7 @@ import {
     View,
     TouchableOpacity,
     InteractionManager,
+    Platform
 } from 'react-native';
 import PropTypes from 'prop-types';
 import {withOnyx} from 'react-native-onyx';
@@ -81,6 +82,7 @@ class IOUAmountPage extends React.Component {
 
         this.state = {
             amount: props.selectedAmount,
+            selection: { start: 0, end: 0 }
         };
         this.selection = { start: 0, end: 0 };
         this.shouldUpdateSelection = true;
@@ -164,7 +166,11 @@ class IOUAmountPage extends React.Component {
             position = 0;
         }
         this.selection = { start: position, end: position };
-        this.textInput.setNativeProps({ selection: this.selection });
+        if (Platform.OS === 'ios') {
+            setTimeout(() => this.setState({ selection: this.selection }), 1);
+        } else {
+            this.textInput.setNativeProps({ selection: this.selection });
+        }
     }
 
     /**
@@ -280,8 +286,12 @@ class IOUAmountPage extends React.Component {
                         onSelectionChange={(e) => {
                             if (this.shouldUpdateSelection) {
                                 this.selection = e.nativeEvent.selection;
+                                if (Platform.OS === 'ios') {
+                                    this.setState({ selection: e.nativeEvent.selection })
+                                }
                             }
                         }}
+                        selection={Platform.OS === 'ios' ? this.state.selection : undefined}
                     />
                 </View>
                 <View style={[styles.w100, styles.justifyContentEnd]}>

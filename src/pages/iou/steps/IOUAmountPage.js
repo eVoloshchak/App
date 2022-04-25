@@ -75,10 +75,15 @@ class IOUAmountPage extends React.Component {
         this.updateAmount = this.updateAmount.bind(this);
         this.stripCommaFromAmount = this.stripCommaFromAmount.bind(this);
         this.focusTextInput = this.focusTextInput.bind(this);
+        this.deleteSymbol = this.deleteSymbol.bind(this);
+        this.setCaretPosition = this.setCaretPosition.bind(this);
+        this.getPastedText = this.getPastedText.bind(this);
 
         this.state = {
             amount: props.selectedAmount,
         };
+        this.selection = { start: 0, end: 0 };
+        this.shouldUpdateSelection = true;
     }
 
     componentDidMount() {
@@ -146,6 +151,22 @@ class IOUAmountPage extends React.Component {
         return amount.replace(/,/g, '');
     }
 
+    deleteSymbol(amount) {
+        if (this.selection.start === this.selection.end) {
+            return amount.substring(0, this.selection.start - 1) + amount.substring(this.selection.start, amount.length);
+        } else {
+            return amount.substring(0, this.selection.start) + amount.substring(this.selection.end, amount.length);
+        }
+    }
+
+    setCaretPosition(position) {
+        if (position < 0) {
+            position = 0;
+        }
+        this.selection = { start: position, end: position };
+        this.textInput.setNativeProps({ selection: this.selection });
+    }
+
     /**
      * Update amount with number or Backspace pressed for BigNumberPad.
      * Validate new amount with decimal number regex up to 6 digits and 2 decimal digit to enable Next button
@@ -153,20 +174,35 @@ class IOUAmountPage extends React.Component {
      * @param {String} key
      */
     updateAmountNumberPad(key) {
-        // Backspace button is pressed
         if (key === '<' || key === 'Backspace') {
             if (this.state.amount.length > 0) {
-                this.setState(prevState => ({
-                    amount: prevState.amount.slice(0, -1),
-                }));
+                this.setState(prevState => {
+                    const amount = this.deleteSymbol(prevState.amount);
+                    let cursorPosition = this.selection.start;
+                    if (this.selection.start === this.selection.end) {
+                        cursorPosition = cursorPosition - 1;
+                    }
+                    this.setCaretPosition(cursorPosition);
+                    return { amount };
+                });
             }
             return;
         }
 
         this.setState((prevState) => {
-            const amount = `${prevState.amount}${key}`;
-            return this.validateAmount(amount) ? {amount: this.stripCommaFromAmount(amount)} : prevState;
+            const amount = prevState.amount.substring(0, this.selection.start) + key + prevState.amount.substring(this.selection.end);
+            const amountIsValid = this.validateAmount(amount)
+            if (amountIsValid) {
+                this.setCaretPosition(this.selection.start + 1);
+            } 
+            return amountIsValid ? {amount: this.stripCommaFromAmount(amount)} : prevState;
         });
+    }
+
+    getPastedText(prevString, newString) {
+        const beforeSelection = prevString.substring(0, this.selection.start);
+        const afterSelection = prevString.substring(this.selection.end, prevString.length);
+        return newString.replace(beforeSelection, '').replace(afterSelection, '');
     }
 
     /**
@@ -178,7 +214,12 @@ class IOUAmountPage extends React.Component {
     updateAmount(text) {
         this.setState((prevState) => {
             const amount = this.replaceAllDigits(text, this.props.fromLocaleDigit);
-            return this.validateAmount(amount)
+            const amountIsValid = this.validateAmount(amount)
+            if (amountIsValid) {
+                const pastedText = this.getPastedText(prevState.amount, this.stripCommaFromAmount(amount))
+                this.setCaretPosition(this.selection.start + pastedText.length);
+            }
+            return amountIsValid
                 ? {amount: this.stripCommaFromAmount(amount)}
                 : prevState;
         });
@@ -236,6 +277,11 @@ class IOUAmountPage extends React.Component {
                         value={formattedAmount}
                         placeholder={this.props.numberFormat(0)}
                         keyboardType={CONST.KEYBOARD_TYPE.NUMBER_PAD}
+                        onSelectionChange={(e) => {
+                            if (this.shouldUpdateSelection) {
+                                this.selection = e.nativeEvent.selection;
+                            }
+                        }}
                     />
                 </View>
                 <View style={[styles.w100, styles.justifyContentEnd]}>
@@ -243,6 +289,8 @@ class IOUAmountPage extends React.Component {
                         ? (
                             <BigNumberPad
                                 numberPressed={this.updateAmountNumberPad}
+                                onPressIn={() => this.shouldUpdateSelection = false}
+                                onPressOut={() => this.shouldUpdateSelection = true}
                             />
                         ) : <View />}
 

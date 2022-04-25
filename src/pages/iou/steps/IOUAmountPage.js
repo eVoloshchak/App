@@ -85,7 +85,6 @@ class IOUAmountPage extends React.Component {
             selection: { start: 0, end: 0 }
         };
         this.selection = { start: 0, end: 0 };
-        this.shouldUpdateSelection = true;
     }
 
     componentDidMount() {
@@ -284,11 +283,9 @@ class IOUAmountPage extends React.Component {
                         placeholder={this.props.numberFormat(0)}
                         keyboardType={CONST.KEYBOARD_TYPE.NUMBER_PAD}
                         onSelectionChange={(e) => {
-                            if (this.shouldUpdateSelection) {
-                                this.selection = e.nativeEvent.selection;
-                                if (Platform.OS === 'ios') {
-                                    this.setState({ selection: e.nativeEvent.selection })
-                                }
+                            this.selection = e.nativeEvent.selection;
+                            if (Platform.OS === 'ios') {
+                                this.setState({ selection: e.nativeEvent.selection })
                             }
                         }}
                         selection={Platform.OS === 'ios' ? this.state.selection : undefined}
@@ -299,8 +296,6 @@ class IOUAmountPage extends React.Component {
                         ? (
                             <BigNumberPad
                                 numberPressed={this.updateAmountNumberPad}
-                                onPressIn={() => this.shouldUpdateSelection = false}
-                                onPressOut={() => this.shouldUpdateSelection = true}
                             />
                         ) : <View />}
 

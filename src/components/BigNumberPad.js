@@ -65,7 +65,10 @@ class BigNumberPad extends React.Component {
                                     onLongPress={() => this.handleLongPress(column)}
                                     onPress={() => this.props.numberPressed(column)}
                                     onPressIn={ControlSelection.block}
-                                    onPressOut={ControlSelection.unblock}
+                                    onPressOut={() => {
+                                        clearInterval(this.state.timer);
+                                        ControlSelection.unblock();
+                                    }}
                                 />
                             );
                         })}

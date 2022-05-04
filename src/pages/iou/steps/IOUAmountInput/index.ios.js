@@ -1,4 +1,5 @@
 import React from 'react';
+import _ from 'underscore';
 import TextInput from '../../../../components/TextInput';
 
 class IOUAmountInput extends React.Component {
@@ -31,7 +32,7 @@ class IOUAmountInput extends React.Component {
                 }}
                 selection={this.state.selection}
                 // eslint-disable-next-line react/jsx-props-no-spreading
-                {...this.props}
+                {...(_.omit(this.props, 'onSelectionChange'))}
             />
         );
     }

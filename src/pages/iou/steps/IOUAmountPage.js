@@ -18,7 +18,7 @@ import compose from '../../../libs/compose';
 import Button from '../../../components/Button';
 import Text from '../../../components/Text';
 import CONST from '../../../CONST';
-import TextInput from '../../../components/TextInput';
+import IOUAmountInput from './IOUAmountInput';
 import canUseTouchScreen from '../../../libs/canUseTouchscreen';
 
 const propTypes = {
@@ -76,6 +76,10 @@ class IOUAmountPage extends React.Component {
         this.stripCommaFromAmount = this.stripCommaFromAmount.bind(this);
         this.focusTextInput = this.focusTextInput.bind(this);
         this.focusEmptyInput = this.focusEmptyInput.bind(this);
+        this.deleteSymbol = this.deleteSymbol.bind(this);
+        this.setCaretPosition = this.setCaretPosition.bind(this);
+        this.getPastedText = this.getPastedText.bind(this);
+        this.selection = {start: 0, end: 0};
 
         this.state = {
             amount: props.selectedAmount,
@@ -92,6 +96,28 @@ class IOUAmountPage extends React.Component {
         }
 
         this.focusTextInput();
+    }
+
+    setCaretPosition(position) {
+        let caretPosition = position;
+        if (caretPosition < 0) {
+            caretPosition = 0;
+        }
+        this.selection = {start: caretPosition, end: caretPosition};
+        this.textInput.setCaretPosition(caretPosition);
+    }
+
+    getPastedText(prevString, newString) {
+        const beforeSelection = prevString.substring(0, this.selection.start);
+        const afterSelection = prevString.substring(this.selection.end, prevString.length);
+        return newString.replace(beforeSelection, '').replace(afterSelection, '');
+    }
+
+    deleteSymbol(amount) {
+        if (this.selection.start === this.selection.end) {
+            return amount.substring(0, this.selection.start - 1) + amount.substring(this.selection.start, amount.length);
+        }
+        return amount.substring(0, this.selection.start) + amount.substring(this.selection.end, amount.length);
     }
 
     /**
@@ -167,16 +193,26 @@ class IOUAmountPage extends React.Component {
         // Backspace button is pressed
         if (key === '<' || key === 'Backspace') {
             if (this.state.amount.length > 0) {
-                this.setState(prevState => ({
-                    amount: prevState.amount.slice(0, -1),
-                }));
+                this.setState((prevState) => {
+                    const amount = this.deleteSymbol(prevState.amount);
+                    let cursorPosition = this.selection.start; // if user has highlighted at least one symbol, selection.start is automatically shifted to the left
+                    if (this.selection.start === this.selection.end) {
+                        cursorPosition -= cursorPosition;
+                    }
+                    this.setCaretPosition(cursorPosition);
+                    return {amount};
+                });
             }
             return;
         }
 
         this.setState((prevState) => {
-            const amount = `${prevState.amount}${key}`;
-            return this.validateAmount(amount) ? {amount: this.stripCommaFromAmount(amount)} : prevState;
+            const amount = prevState.amount.substring(0, this.selection.start) + key + prevState.amount.substring(this.selection.end);
+            const amountIsValid = this.validateAmount(amount);
+            if (amountIsValid) {
+                this.setCaretPosition(this.selection.start + 1);
+            }
+            return amountIsValid ? {amount: this.stripCommaFromAmount(amount)} : prevState;
         });
     }
 
@@ -189,7 +225,12 @@ class IOUAmountPage extends React.Component {
     updateAmount(text) {
         this.setState((prevState) => {
             const amount = this.replaceAllDigits(text, this.props.fromLocaleDigit);
-            return this.validateAmount(amount)
+            const amountIsValid = this.validateAmount(amount);
+            if (amountIsValid) {
+                const pastedText = this.getPastedText(prevState.amount, this.stripCommaFromAmount(amount));
+                this.setCaretPosition(this.selection.start + pastedText.length);
+            }
+            return amountIsValid
                 ? {amount: this.stripCommaFromAmount(amount)}
                 : prevState;
         });
@@ -236,7 +277,7 @@ class IOUAmountPage extends React.Component {
                             {lodashGet(this.props.currencyList, [this.props.iou.selectedCurrencyCode, 'symbol'])}
                         </Text>
                     </TouchableOpacity>
-                    <TextInput
+                    <IOUAmountInput
                         disableKeyboard
                         autoGrow
                         hideFocusedState
@@ -248,6 +289,7 @@ class IOUAmountPage extends React.Component {
                         placeholder={this.props.numberFormat(0)}
                         keyboardType={CONST.KEYBOARD_TYPE.NUMBER_PAD}
                         onBlur={this.focusEmptyInput}
+                        onSelectionChange={e => this.selection = e.nativeEvent.selection}
                     />
                 </View>
                 <View style={[styles.w100, styles.justifyContentEnd]}>

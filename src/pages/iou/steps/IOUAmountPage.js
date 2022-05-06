@@ -197,7 +197,7 @@ class IOUAmountPage extends React.Component {
                     const amount = this.deleteSymbol(prevState.amount);
                     let cursorPosition = this.selection.start; // if user has highlighted at least one symbol, selection.start is automatically shifted to the left
                     if (this.selection.start === this.selection.end) {
-                        cursorPosition -= cursorPosition;
+                        cursorPosition -= 1;
                     }
                     this.setCaretPosition(cursorPosition);
                     return {amount};

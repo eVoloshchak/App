@@ -108,9 +108,11 @@ class IOUAmountPage extends React.Component {
     }
 
     getPastedText(prevString, newString) {
-        const beforeSelection = prevString.substring(0, this.selection.start);
-        const afterSelection = prevString.substring(this.selection.end, prevString.length);
-        return newString.replace(beforeSelection, '').replace(afterSelection, '');
+        let pastedText = newString.slice(this.selection.start);
+        if (prevString.length - this.selection.end) {
+            pastedText = pastedText.slice(0, (prevString.length - this.selection.end) * -1);
+        }
+        return pastedText;
     }
 
     deleteSymbol(amount) {

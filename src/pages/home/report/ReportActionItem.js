@@ -26,6 +26,7 @@ import * as ReportActionContextMenu from './ContextMenu/ReportActionContextMenu'
 import * as ContextMenuActions from './ContextMenu/ContextMenuActions';
 import {withReportActionsDrafts} from '../../../components/OnyxProvider';
 import RenameAction from '../../../components/ReportActionItem/RenameAction';
+import * as ReportUtils from '../../../libs/reportUtils';
 
 const propTypes = {
     /** The ID of the report this action is on. */
@@ -69,6 +70,7 @@ class ReportActionItem extends Component {
         };
         this.checkIfContextMenuActive = this.checkIfContextMenuActive.bind(this);
         this.showPopover = this.showPopover.bind(this);
+        this.isAttachment = this.isAttachment.bind(this);
     }
 
     shouldComponentUpdate(nextProps, nextState) {
@@ -118,6 +120,15 @@ class ReportActionItem extends Component {
         this.setState({isContextMenuActive: ReportActionContextMenu.isActiveReportAction(this.props.action.reportActionID)});
     }
 
+    isAttachment() {
+        const message = _.last(lodashGet(this.props.action, 'message', [{}]));
+        const isAttachment = _.has(this.props.action, 'isAttachment')
+            ? this.props.action.isAttachment
+            : ReportUtils.isReportMessageAttachment(message);
+
+        return isAttachment;
+    }
+
     render() {
         if (this.props.action.actionName === CONST.REPORT.ACTIONS.TYPE.CREATED) {
             return <ReportActionItemCreated reportID={this.props.reportID} />;
@@ -161,6 +172,7 @@ class ReportActionItem extends Component {
                     // Blur the input after a key is pressed to keep the blue focus border from appearing
                     event.target.blur();
                 }}
+                useLongPressHandler={this.isAttachment()}
             >
                 <Hoverable resetsOnClickOutside>
                     {hovered => (

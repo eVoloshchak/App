@@ -15,30 +15,50 @@ import HapticFeedback from '../../libs/HapticFeedback';
 const PressableWithSecondaryInteraction = (props) => {
     // Use Text node for inline mode to prevent content overflow.
     const Node = props.inline ? Text : Pressable;
+    if (props.useLongPressHandler) {
+        return (
+            <LongPressGestureHandler
+                onHandlerStateChange={(e) => {
+                    if (e.nativeEvent.state !== State.ACTIVE) {
+                        return;
+                    }
+                    e.preventDefault();
+                    HapticFeedback.trigger();
+                    props.onSecondaryInteraction(e);
+                }}
+            >
+                <Node
+                    ref={props.forwardedRef}
+                    onPress={props.onPress}
+                    onPressIn={props.onPressIn}
+                    onPressOut={props.onPressOut}
+                // eslint-disable-next-line react/jsx-props-no-spreading
+                    {...(_.omit(props, 'onLongPress'))}
+                >
+                    {props.children}
+                </Node>
+            </LongPressGestureHandler>
+        );
+    }
+
     return (
-        <LongPressGestureHandler
-            onHandlerStateChange={(e) => {
-                if (e.nativeEvent.state !== State.ACTIVE) {
-                    return;
-                }
+        <Node
+            ref={props.forwardedRef}
+            onPress={props.onPress}
+            onPressIn={props.onPressIn}
+            onPressOut={props.onPressOut}
+            onLongPress={(e) => {
                 e.preventDefault();
                 HapticFeedback.trigger();
                 props.onSecondaryInteraction(e);
             }}
+        // eslint-disable-next-line react/jsx-props-no-spreading
+            {...props}
         >
-            <Node
-                ref={props.forwardedRef}
-                onPress={props.onPress}
-                onPressIn={props.onPressIn}
-                onPressOut={props.onPressOut}
-            // eslint-disable-next-line react/jsx-props-no-spreading
-                {...(_.omit(props, 'onLongPress'))}
-            >
-                {props.children}
-            </Node>
-        </LongPressGestureHandler>
+            {props.children}
+        </Node>
+    )
 
-    );
 };
 
 PressableWithSecondaryInteraction.propTypes = pressableWithSecondaryInteractionPropTypes.propTypes;

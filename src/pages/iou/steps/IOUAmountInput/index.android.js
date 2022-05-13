@@ -1,15 +1,17 @@
 import React from 'react';
 import TextInput from '../../../../components/TextInput';
-import _ from 'underscore';
 
 class IOUAmountInput extends React.Component {
     constructor(props) {
         super(props);
 
+        this.setCaretPosition = this.setCaretPosition.bind(this);
         this.focus = this.focus.bind(this);
     }
 
-    setCaretPosition() {}
+    setCaretPosition(position) {
+        this.textInput.setNativeProps({selection: {start: position, end: position}});
+    }
 
     focus() {
         this.textInput.focus();

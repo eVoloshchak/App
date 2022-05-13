@@ -3,7 +3,6 @@ import {
     View,
     TouchableOpacity,
     InteractionManager,
-    findNodeHandle,
 } from 'react-native';
 import PropTypes from 'prop-types';
 import {withOnyx} from 'react-native-onyx';
@@ -127,11 +126,6 @@ class IOUAmountPage extends React.Component {
      * Keep TextInput focused if no amount is entered.
      */
     focusEmptyInput(e) {
-        // If user pressed not on the keypad - move caret to the end
-        if (!findNodeHandle(e.relatedTarget)) {
-            const amountLength = this.state.amount.length;
-            this.selection = {start: amountLength, end: amountLength};
-        }
         if (this.state.amount !== '') {
             return;
         }

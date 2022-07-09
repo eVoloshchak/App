@@ -2,6 +2,7 @@ import React from 'react';
 import {
     View,
     InteractionManager,
+    findNodeHandle,
 } from 'react-native';
 import PropTypes from 'prop-types';
 import {withOnyx} from 'react-native-onyx';
@@ -62,9 +63,12 @@ class IOUAmountPage extends React.Component {
         this.stripCommaFromAmount = this.stripCommaFromAmount.bind(this);
         this.focusTextInput = this.focusTextInput.bind(this);
         this.navigateToCurrencySelectionPage = this.navigateToCurrencySelectionPage.bind(this);
+        this.deleteSymbol = this.deleteSymbol.bind(this);
+        this.getPastedText = this.getPastedText.bind(this);
 
         this.state = {
             amount: props.selectedAmount,
+            selection: {start: 0, end: 0},
         };
     }
 
@@ -143,16 +147,28 @@ class IOUAmountPage extends React.Component {
         // Backspace button is pressed
         if (key === '<' || key === 'Backspace') {
             if (this.state.amount.length > 0) {
-                this.setState(prevState => ({
-                    amount: prevState.amount.slice(0, -1),
-                }));
+                this.setState((prevState) => {
+                    const amount = this.deleteSymbol(prevState.amount);
+                    let cursorPosition = prevState.selection.start; // if user has highlighted at least one symbol, selection.start is automatically shifted to the left
+                    if (prevState.selection.start === prevState.selection.end) {
+                        cursorPosition -= 1;
+                    }
+
+                    const selection = {start: cursorPosition, end: cursorPosition};
+                    return {amount, selection};
+                });
             }
             return;
         }
 
         this.setState((prevState) => {
-            const amount = `${prevState.amount}${key}`;
-            return this.validateAmount(amount) ? {amount: this.stripCommaFromAmount(amount)} : prevState;
+            const amount = prevState.amount.substring(0, prevState.selection.start) + key + prevState.amount.substring(prevState.selection.end);
+            const amountIsValid = this.validateAmount(amount);
+            if (amountIsValid) {
+                const selection = {start: prevState.selection.start + 1, end: prevState.selection.start + 1};
+                return {amount: this.stripCommaFromAmount(amount), selection}
+            }
+            return prevState;
         });
     }
 
@@ -164,10 +180,15 @@ class IOUAmountPage extends React.Component {
      */
     updateAmount(text) {
         this.setState((prevState) => {
-            const amount = this.replaceAllDigits(text, this.props.fromLocaleDigit);
-            return this.validateAmount(amount)
-                ? {amount: this.stripCommaFromAmount(amount)}
-                : prevState;
+            const amount = this.stripCommaFromAmount(this.replaceAllDigits(text, this.props.fromLocaleDigit));
+            const amountIsValid = this.validateAmount(amount);
+            if (amountIsValid) {
+                const pastedText = this.getPastedText(prevState.amount, amount, prevState.selection);
+                const cursorPosition = prevState.selection.start + pastedText.length
+                const selection = {start: cursorPosition, end: cursorPosition};
+                return {amount, selection}
+            }
+            return prevState;
         });
     }
 
@@ -202,6 +223,21 @@ class IOUAmountPage extends React.Component {
         return Navigation.navigate(ROUTES.getIouRequestCurrencyRoute(this.props.reportID));
     }
 
+    getPastedText(prevString, newString, selection) {
+        let pastedText = newString.slice(selection.start);
+        if (prevString.length - selection.end) {
+            pastedText = pastedText.slice(0, (prevString.length - selection.end) * -1);
+        }
+        return pastedText;
+    }
+
+    deleteSymbol(amount) {
+        if (this.state.selection.start === this.state.selection.end) {
+            return amount.substring(0, this.state.selection.start - 1) + amount.substring(this.state.selection.start, amount.length);
+        }
+        return amount.substring(0, this.state.selection.start) + amount.substring(this.state.selection.end, amount.length);
+    }
+
     render() {
         const formattedAmount = this.replaceAllDigits(this.state.amount, this.props.toLocaleDigit);
 
@@ -223,6 +259,15 @@ class IOUAmountPage extends React.Component {
                         preferredLocale={this.props.preferredLocale}
                         ref={el => this.textInput = el}
                         selectedCurrencyCode={this.props.iou.selectedCurrencyCode}
+                        selection={this.state.selection}
+                        onSelectionChange={e => this.setState({ selection: e.nativeEvent.selection })}
+                        onBlur={(e) => {
+                            // If user pressed on empty screen - move cursor to the end
+                            if (!findNodeHandle(e.relatedTarget)) {
+                                const cursorPosition = this.state.amount.length;
+                                this.setState({ selection: {start: cursorPosition, end: cursorPosition} })
+                            }
+                        }}
                     />
                 </View>
                 <View style={[styles.w100, styles.justifyContentEnd]}>

@@ -53,6 +53,8 @@ function TextInputWithCurrencySymbol(props) {
             onChangeAmount={props.onChangeAmount}
             placeholder={props.placeholder}
             ref={props.forwardedRef}
+            selection={props.selection}
+            onSelectionChange={props.onSelectionChange}
         />
     );
 

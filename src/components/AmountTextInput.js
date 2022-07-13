@@ -41,6 +41,7 @@ function AmountTextInput(props) {
             blurOnSubmit={false}
             selection={props.selection}
             onSelectionChange={props.onSelectionChange}
+            isValueControlled
         />
     );
 }

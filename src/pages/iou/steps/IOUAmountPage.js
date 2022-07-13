@@ -148,7 +148,7 @@ class IOUAmountPage extends React.Component {
         if (key === '<' || key === 'Backspace') {
             if (this.state.amount.length > 0) {
                 this.setState((prevState) => {
-                    const amount = this.deleteSymbol(prevState.amount);
+                    const amount = this.deleteSymbol(prevState.amount, prevState.selection);
                     let cursorPosition = prevState.selection.start; // if user has highlighted at least one symbol, selection.start is automatically shifted to the left
                     if (prevState.selection.start === prevState.selection.end) {
                         cursorPosition -= 1;
@@ -231,11 +231,11 @@ class IOUAmountPage extends React.Component {
         return pastedText;
     }
 
-    deleteSymbol(amount) {
-        if (this.state.selection.start === this.state.selection.end) {
-            return amount.substring(0, this.state.selection.start - 1) + amount.substring(this.state.selection.start, amount.length);
+    deleteSymbol(amount, selection) {
+        if (selection.start === selection.end) {
+            return amount.substring(0, selection.start - 1) + amount.substring(selection.start, amount.length);
         }
-        return amount.substring(0, this.state.selection.start) + amount.substring(this.state.selection.end, amount.length);
+        return amount.substring(0, selection.start) + amount.substring(selection.end, amount.length);
     }
 
     render() {

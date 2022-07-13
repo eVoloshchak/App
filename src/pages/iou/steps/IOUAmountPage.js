@@ -184,7 +184,10 @@ class IOUAmountPage extends React.Component {
             const amountIsValid = this.validateAmount(amount);
             if (amountIsValid) {
                 const pastedText = this.getPastedText(prevState.amount, amount, prevState.selection);
-                const cursorPosition = prevState.selection.start + pastedText.length
+                let cursorPosition = prevState.selection.start + pastedText.length;
+                if (!pastedText && prevState.selection.start === prevState.selection.end) {
+                    cursorPosition -= 1;
+                }
                 const selection = {start: cursorPosition, end: cursorPosition};
                 return {amount, selection}
             }

@@ -222,7 +222,7 @@ class IOUAmountPage extends React.Component {
         if (selection.start === selection.end) {
             return selection.start - 1;
         }
-        return selection;
+        return selection.start;
     }
 
     deleteSymbol(amount, selection) {

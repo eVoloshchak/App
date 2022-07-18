@@ -63,7 +63,6 @@ class IOUAmountPage extends React.Component {
         this.stripCommaFromAmount = this.stripCommaFromAmount.bind(this);
         this.focusTextInput = this.focusTextInput.bind(this);
         this.navigateToCurrencySelectionPage = this.navigateToCurrencySelectionPage.bind(this);
-        this.deleteSymbol = this.deleteSymbol.bind(this);
 
         this.state = {
             amount: props.selectedAmount,
@@ -147,9 +146,9 @@ class IOUAmountPage extends React.Component {
         if (key === '<' || key === 'Backspace') {
             if (this.state.amount.length > 0) {
                 this.setState((prevState) => {
-                    const amount = this.deleteSymbol(prevState.amount, prevState.selection);
-                    const cursorPosition = this.getSelectionStart(prevState.selection);
-                    const selection = {start: cursorPosition, end: cursorPosition};
+                    const selectionStart = prevState.selection.start === prevState.selection.end ? prevState.selection.start - 1 : prevState.selection.start;
+                    const amount = `${prevState.amount.substring(0, selectionStart)}${prevState.amount.substring(prevState.selection.end, prevState.amount.length)}`;
+                    const selection = this.getNewSelection(prevState.selection, prevState.amount, amount);
                     return {amount, selection};
                 });
             }
@@ -157,12 +156,10 @@ class IOUAmountPage extends React.Component {
         }
 
         this.setState((prevState) => {
-            const amount = prevState.amount.substring(0, prevState.selection.start) + key + prevState.amount.substring(prevState.selection.end);
-            const amountIsValid = this.validateAmount(amount);
-            if (amountIsValid) {
-                const cursorPosition = prevState.selection.start + 1;
-                const selection = {start: cursorPosition, end: cursorPosition};
-                return {amount: this.stripCommaFromAmount(amount), selection}
+            const amount = this.stripCommaFromAmount(`${prevState.amount.substring(0, prevState.selection.start)}${key}${prevState.amount.substring(prevState.selection.end)}`);
+            if (this.validateAmount(amount)) {
+                const selection = this.getNewSelection(prevState.selection, prevState.amount, amount);
+                return {amount, selection}
             }
             return prevState;
         });
@@ -177,10 +174,8 @@ class IOUAmountPage extends React.Component {
     updateAmount(text) {
         this.setState((prevState) => {
             const amount = this.stripCommaFromAmount(this.replaceAllDigits(text, this.props.fromLocaleDigit));
-            const amountIsValid = this.validateAmount(amount);
-            if (amountIsValid) {
-                const cursorPosition = prevState.selection.end + amount.length - prevState.amount.length;
-                const selection = {start: cursorPosition, end: cursorPosition};
+            if (this.validateAmount(amount)) {
+                const selection = this.getNewSelection(prevState.selection, prevState.amount, amount);
                 return {amount, selection}
             }
             return prevState;
@@ -218,15 +213,9 @@ class IOUAmountPage extends React.Component {
         return Navigation.navigate(ROUTES.getIouRequestCurrencyRoute(this.props.reportID));
     }
 
-    getSelectionStart(selection) {
-        if (selection.start === selection.end) {
-            return selection.start - 1;
-        }
-        return selection.start;
-    }
-
-    deleteSymbol(amount, selection) {
-        return amount.substring(0, this.getSelectionStart(selection)) + amount.substring(selection.end, amount.length);
+    getNewSelection(oldSelection, oldAmount = '', newAmount = '') {
+        const cursorPosition = oldSelection.end + newAmount.length - oldAmount.length;
+        return {start: cursorPosition, end: cursorPosition};
     }
 
     render() {
@@ -255,8 +244,8 @@ class IOUAmountPage extends React.Component {
                         onBlur={(e) => {
                             // If user pressed on empty screen - move cursor to the end
                             if (!findNodeHandle(e.relatedTarget)) {
-                                const cursorPosition = this.state.amount.length;
-                                this.setState({ selection: {start: cursorPosition, end: cursorPosition} })
+                                const selection = this.getNewSelection({end: this.state.amount.length});
+                                this.setState({selection});
                             }
                         }}
                     />

@@ -166,12 +166,14 @@ class IOUAmountPage extends React.Component {
      * @param {String} text - Changed text from user input
      */
     updateAmount(text) {
-        const amount = this.stripCommaFromAmount(this.replaceAllDigits(text, this.props.fromLocaleDigit));
-        if (this.validateAmount(amount)) {
-            const selection = this.getNewSelection(prevState.selection, prevState.amount, amount);
-            return {amount, selection}
-        }
-        return prevState;
+        this.setState((prevState) => {
+            const amount = this.stripCommaFromAmount(this.replaceAllDigits(text, this.props.fromLocaleDigit));
+            if (this.validateAmount(amount)) {
+                const selection = this.getNewSelection(prevState.selection, prevState.amount, amount);
+                return {amount, selection}
+            }
+            return prevState;
+        });
     }
 
     getNewSelection(oldSelection, oldAmount = '', newAmount = '') {

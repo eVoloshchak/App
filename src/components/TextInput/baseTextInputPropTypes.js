@@ -64,15 +64,6 @@ const propTypes = {
 
     /** Callback to update the value on Form when input is used in the Form component. */
     onInputChange: PropTypes.func,
-
-    /**
-     * This prop should be used in iOS to make value prop controlled.
-     * iOS has incorrect selection(caret) position when value or
-     * selection is directly manipulated.
-     * Warning:This prop should be used for iOS devices only and it
-     * will cause missing cut/copy menu on android devices.
-    */
-    isValueControlled: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -102,7 +93,6 @@ const defaultProps = {
     hint: '',
     prefixCharacter: '',
     onInputChange: () => {},
-    isValueControlled: false,
 };
 
 export {propTypes, defaultProps};

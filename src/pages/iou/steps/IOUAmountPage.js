@@ -2,6 +2,7 @@ import React from 'react';
 import {
     View,
     InteractionManager,
+    findNodeHandle,
 } from 'react-native';
 import PropTypes from 'prop-types';
 import {withOnyx} from 'react-native-onyx';
@@ -57,6 +58,7 @@ class IOUAmountPage extends React.Component {
 
         this.state = {
             amount: props.selectedAmount.replace('.', this.props.fromLocaleDigit('.')),
+            selection: {start: 0, end: 0},
         };
     }
 
@@ -126,16 +128,23 @@ class IOUAmountPage extends React.Component {
         // Backspace button is pressed
         if (key === '<' || key === 'Backspace') {
             if (this.state.amount.length > 0) {
-                this.setState(prevState => ({
-                    amount: prevState.amount.slice(0, -1),
-                }));
+                this.setState((prevState) => {
+                    const selectionStart = prevState.selection.start === prevState.selection.end ? prevState.selection.start - 1 : prevState.selection.start;
+                    const amount = `${prevState.amount.substring(0, selectionStart)}${prevState.amount.substring(prevState.selection.end, prevState.amount.length)}`;
+                    const selection = this.getNewSelection(prevState.selection, prevState.amount, amount);
+                    return {amount, selection};
+                });
             }
             return;
         }
 
         this.setState((prevState) => {
-            const amount = `${prevState.amount}${key}`;
-            return this.validateAmount(amount) ? {amount} : prevState;
+            const amount = `${prevState.amount.substring(0, prevState.selection.start)}${key}${prevState.amount.substring(prevState.selection.end)}`;
+            if (this.validateAmount(amount)) {
+                const selection = this.getNewSelection(prevState.selection, prevState.amount, amount);
+                return {amount, selection}
+            }
+            return prevState;
         });
     }
 
@@ -146,7 +155,17 @@ class IOUAmountPage extends React.Component {
      * @param {String} amount - Changed amount from user input
      */
     updateAmount(amount) {
-        this.setState(prevState => (this.validateAmount(amount) ? {amount} : prevState));
+        if (this.validateAmount(amount)) {
+            this.setState((prevState) => {
+                const selection = this.getNewSelection(prevState.selection, prevState.amount, amount);
+                return {amount, selection};
+            });
+        }
+    }
+
+    getNewSelection(oldSelection, oldAmount = '', newAmount = '') {
+        const cursorPosition = oldSelection.end + newAmount.length - oldAmount.length;
+        return {start: cursorPosition, end: cursorPosition};
     }
 
     navigateToCurrencySelectionPage() {
@@ -178,6 +197,15 @@ class IOUAmountPage extends React.Component {
                         preferredLocale={this.props.preferredLocale}
                         ref={el => this.textInput = el}
                         selectedCurrencyCode={this.props.iou.selectedCurrencyCode || CONST.CURRENCY.USD}
+                        selection={this.state.selection}
+                        onSelectionChange={e => this.setState({ selection: e.nativeEvent.selection })}
+                        onBlur={(e) => {
+                            // If user presses on empty screen - move cursor to the end
+                            if (!findNodeHandle(e.relatedTarget)) {
+                                const selection = this.getNewSelection({end: this.state.amount.length});
+                                this.setState({selection});
+                            }
+                        }}
                     />
                 </View>
                 <View style={[styles.w100, styles.justifyContentEnd]}>
